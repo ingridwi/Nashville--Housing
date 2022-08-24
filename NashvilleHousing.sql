@@ -17,6 +17,18 @@ SET SaleDate = SUBSTRING(SaleDate, 2, LEN(SaleDate)-2);
 UPDATE [dbo].[NashvilleHousingData]
 SET SaleDate = TRY_PARSE(SaleDate AS Date);
 
+-- Standardize SalePrice field
+UPDATE [dbo].[NashvilleHousingData]
+SET SalePrice = SUBSTRING(SalePrice, 2, LEN(SalePrice)-2)
+WHERE SalePrice LIKE '"%';
+
+UPDATE [dbo].[NashvilleHousingData]
+SET  SalePrice = REPLACE(REPLACE(SalePrice, ',', ''), '$', '')
+WHERE SalePrice LIKE '$%';
+
+UPDATE [dbo].[NashvilleHousingData]
+SET  SalePrice = TRY_CAST(SalePrice AS NUMERIC)
+
 -- Populate Property Address Data using ParcelID
 -- because certain rows have same parcelID but NULL property address
 
@@ -69,3 +81,21 @@ FROM [dbo].[NashvilleHousingData]
 DELETE 
 FROM RowNumCTE
 WHERE row_num > 1
+
+-- Create new column to categorise bedrooms and fullbaths
+
+ALTER TABLE [dbo].[NashvilleHousingData]
+ADD bedroomscategory Nvarchar(255),
+    fullbathcategory Nvarchar(255);
+
+UPDATE [dbo].[NashvilleHousingData]
+SET bedroomscategory =  
+    CASE WHEN bedrooms < 2 THEN '< 2'
+         WHEN bedrooms > 4 THEN '> 4'
+    ELSE CAST(bedrooms AS NVARCHAR(2))
+    END,
+    fullbathcategory =  
+    CASE WHEN fullbath > 3 THEN '> 3'
+    ELSE CAST(fullbath AS NVARCHAR(2))
+    END
+FROM [dbo].[NashvilleHousingData];
